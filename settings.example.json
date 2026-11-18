@@ -1,0 +1,9 @@
+{
+  "telegram_owner": 123456789,
+  "telegram_group_ids": ["-1001234567890"],
+  "t3_command": "/usr/local/bin/t3",
+  "project_dir": "/home/example/projects/sample-project",
+  "base_ref": "origin/main",
+  "provider": "codex",
+  "model": "gpt-6.1-terra"
+}

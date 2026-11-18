@@ -1,0 +1,13 @@
+settings.json
+settings.local.json
+.env
+.env.*
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite3*
+*.db
+*.db-*
+*.log
+*.apk
+*.apk.*
