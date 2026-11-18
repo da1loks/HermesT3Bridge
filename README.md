@@ -9,26 +9,28 @@ HermesT3Bridge connects Telegram forum topics to local T3 Code projects through 
 - Android APKs referenced by T3 can arrive as Telegram file attachments.
 - A topic can also be set up for ordinary conversation with Hermes.
 
-## Requirements
+## Quick start
 
-- Hermes Agent 0.23.2 or newer with its Telegram gateway configured.
-- T3 Code running on the same machine, with its CLI, provider and model available.
-- Git and a repository with a commit available as a worktree base.
-- A Telegram group with Topics enabled and the bot able to receive topic creation events and regular group messages. The Windows pilot used a bot configured as a group administrator.
+Start with Hermes Agent 0.23.2 or newer, its Telegram gateway configured, and T3 Code running on the same machine. For a new Telegram connection, run `hermes gateway setup`. Have Git, a repository with at least one commit, and a Telegram group with Topics enabled. The bot needs to receive topic creation events and regular group messages. The Windows pilot uses a bot configured as a group administrator.
 
-The integration was verified on Windows with Hermes Agent 0.23.2, T3 CLI 0.1.10 and Codex.
-
-## Install from a local checkout
-
-1. Copy `plugin.yaml`, `__init__.py`, `projects.py`, `artifacts.py`, `usage.py` and `settings.example.json` into `plugins/t3-bridge` under your Hermes profile. `HermesT3Bridge` is the repository name and `t3-bridge` is the plugin ID. The Windows pilot uses `%LOCALAPPDATA%\hermes` as its profile.
-2. Copy `settings.example.json` to `settings.json` in that plugin directory. Set the values for your host and Telegram account.
-3. Enable the plugin, validate it, and restart the gateway.
+### 1. Install from GitHub
 
 ```sh
-hermes plugins enable t3-bridge
-hermes plugins doctor --ci t3-bridge
-hermes gateway restart
+hermes plugins install da1loks/HermesT3Bridge --no-enable
 ```
+
+Hermes installs the repository under the plugin ID `t3-bridge`. [Hermes plugin installation](https://hermes-agent.nousresearch.com/docs/user-guide/features/plugins/)
+
+You can also clone the repository directly into `plugins/t3-bridge` under your active Hermes profile and continue below. [GitHub repository](https://github.com/da1loks/HermesT3Bridge)
+
+### 2. Add local settings
+
+Copy `settings.example.json` to `settings.json` in your plugin directory.
+
+- Windows (native) · `%LOCALAPPDATA%\hermes\plugins\t3-bridge`
+- macOS and Linux · `~/.hermes/plugins/t3-bridge`
+
+If you use a named profile or set `HERMES_HOME`, use that profile's plugin directory. Edit `settings.json` with your Telegram IDs and local paths. Keep the provider and model values if they match your T3 setup.
 
 | Setting | Value |
 | --- | --- |
@@ -43,6 +45,18 @@ hermes gateway restart
 | `codex_home` | Optional Codex profile directory for `/usage`. Set it if your T3 Codex provider uses a separate profile. |
 
 Hermes manages the Telegram token, and T3 manages provider authentication. Keep `settings.json` local.
+
+### 3. Enable and try it
+
+```sh
+hermes plugins doctor --ci t3-bridge
+hermes plugins enable t3-bridge
+hermes gateway restart
+```
+
+Create a Telegram topic as the configured owner, reply `dev`, send a repository name or path, and wait for the bot to confirm the binding. Then send your first request as plain text.
+
+The integration was verified on Windows with Hermes Agent 0.23.2, T3 CLI 0.1.10 and Codex.
 
 ## Use a topic
 
@@ -64,6 +78,8 @@ If a completed T3 response includes a local APK as a Markdown link or an inline 
 The hosted Telegram Bot API accepts up to 50 MB per document. Larger APKs are sent in numbered byte parts, such as `app-debug.apk.001` and `app-debug.apk.002`. The last attachment includes Windows joining instructions. Joining the parts restores the original APK bytes. [Telegram Bot API](https://core.telegram.org/bots/api#senddocument)
 
 ## Development
+
+To install from a local checkout, copy `plugin.yaml`, `__init__.py`, `projects.py`, `artifacts.py`, `usage.py`, and `settings.example.json` into `plugins/t3-bridge` under your Hermes profile. Continue at [Add local settings](#2-add-local-settings).
 
 Run the Hermes plugin validator from this checkout.
 
