@@ -4,7 +4,8 @@ HermesT3Bridge connects Telegram forum topics to local T3 Code projects through 
 
 - Each development topic has a repository and a primary T3 thread. The first request creates a Git worktree. Later requests continue that thread.
 - Replying to a T3 card targets its specific thread, even when the topic contains newer work.
-- The bot shows progress updates, the branch and elapsed time in a Telegram card. It edits the same card with the result and recent progress.
+- The bot shows progress updates, the branch and elapsed time in a Telegram card. The card body stays empty until T3 posts its first update. The same card shows the result and recent progress when the task finishes.
+- `/usage` shows the Codex account's 5-hour and weekly limits, including percent used and time until reset.
 - Android APKs referenced by T3 can arrive as Telegram file attachments.
 - A topic can also be set up for ordinary conversation with Hermes.
 
@@ -19,7 +20,7 @@ The integration was verified on Windows with Hermes Agent 0.23.2, T3 CLI 0.1.10 
 
 ## Install from a local checkout
 
-1. Copy `plugin.yaml`, `__init__.py`, `projects.py`, `artifacts.py` and `settings.example.json` into `plugins/t3-bridge` under your Hermes profile. `HermesT3Bridge` is the repository name and `t3-bridge` is the plugin ID. The Windows pilot uses `%LOCALAPPDATA%\hermes` as its profile.
+1. Copy `plugin.yaml`, `__init__.py`, `projects.py`, `artifacts.py`, `usage.py` and `settings.example.json` into `plugins/t3-bridge` under your Hermes profile. `HermesT3Bridge` is the repository name and `t3-bridge` is the plugin ID. The Windows pilot uses `%LOCALAPPDATA%\hermes` as its profile.
 2. Copy `settings.example.json` to `settings.json` in that plugin directory. Set the values for your host and Telegram account.
 3. Enable the plugin, validate it, and restart the gateway.
 
@@ -38,6 +39,8 @@ hermes gateway restart
 | `base_ref` | Worktree start ref for the default repository, for example `origin/main`. |
 | `provider`, `model` | T3 provider instance ID and model slug. |
 | `projects_root` | Optional directory to search for local repositories. It defaults to the parent of `project_dir`. |
+| `codex_command` | Optional absolute path to Codex CLI for `/usage`. The plugin looks for `codex` on `PATH` by default. |
+| `codex_home` | Optional Codex profile directory for `/usage`. Set it if your T3 Codex provider uses a separate profile. |
 
 Hermes manages the Telegram token, and T3 manages provider authentication. Keep `settings.json` local.
 
@@ -49,6 +52,10 @@ Hermes manages the Telegram token, and T3 manages provider authentication. Keep 
 4. Reply to a result card to continue that thread. Reply with `/dev_status` for its status or `/dev_link` for its T3 link. Outside development topics, `/dev <request>` uses the default project.
 
 Topic bindings and delivery records are stored in `t3-bridge.sqlite3` in the Hermes profile.
+
+### Codex limits
+
+Send `/usage` as the owner in a configured Telegram group or in the bot's private chat. The plugin queries the local Codex CLI account using the app server. Sign in to Codex CLI with the same ChatGPT account you use for T3. Each window that Codex reports shows the percentage used and the time until reset. [Codex App Server](https://learn.chatgpt.com/docs/app-server)
 
 ### APK attachments
 

@@ -19,6 +19,7 @@ from markdown_it import MarkdownIt
 
 from .artifacts import document_parts, find_apks, part_caption, without_apk_links
 from .projects import ProjectError, prepare_project
+from .usage import UsageError, codex_command, read_rate_limits, usage_message
 
 
 LOG = logging.getLogger(__name__)
@@ -38,6 +39,10 @@ CLI_ENV = {
     "APPDATA", "LOCALAPPDATA", "PROGRAMDATA", "PROGRAMFILES", "PROGRAMFILES(X86)",
     "TEMP", "TMP", "HOME", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_RUNTIME_DIR",
     "LANG", "LC_ALL", "T3CODE_HOME",
+}
+CODEX_USAGE_ENV = CLI_ENV | {
+    "CODEX_HOME", "HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY",
+    "SSL_CERT_FILE", "SSL_CERT_DIR", "CODEX_CA_CERTIFICATE", "XDG_CACHE_HOME",
 }
 
 
@@ -351,9 +356,13 @@ class Bridge:
         return f"{name[:90]}-Hermes-{job['id']}"
 
     async def route_reply(self, *, event, gateway, **_):
-        message = str(event.reply_to_message_id or "")
         text = (event.text or "").strip()
-        if not event.allow_gateway_control or not message.isdigit() or not text:
+        if not event.allow_gateway_control or not text:
+            return None
+        if event.is_command() and event.get_command() == "usage" and not event.get_command_args().strip():
+            return {"action": "rewrite", "text": "/codex_usage"} if self.origin(event.source) else None
+        message = str(event.reply_to_message_id or "")
+        if not message.isdigit():
             return None
         command = "dev_reply"
         if event.is_command():
@@ -432,13 +441,13 @@ class Bridge:
             short = short.encode("utf-16-le")[:6500].decode("utf-16-le", errors="ignore").rstrip()
             short += "\n… Полный ответ можно открыть через /dev_link."
         rich = f"<h3>{escape(heading)}</h3>{rich_body}<hr><footer>{'<br>'.join(footer)}</footer>"
-        legacy = f"<b>{escape(heading)}</b>\n\n{escape(short)}\n\n" + "\n".join(footer)
+        legacy = "\n\n".join(part for part in (f"<b>{escape(heading)}</b>", escape(short), "\n".join(footer)) if part)
         return rich, legacy
 
     def progress(self, job, thread=None, updates=()):
         elapsed = max(0, time() - (job["started_at"] or time()))
         dots = "." * (1 + int(elapsed / POLL_INTERVAL) % 3)
-        return self.card(job, f"Выполняю{dots}", "Результат появится здесь.", thread, updates=updates, live=True)
+        return self.card(job, f"Выполняю{dots}", "", thread, updates=updates, live=True)
 
     @staticmethod
     def assistant_messages(job, snapshot):
@@ -773,6 +782,21 @@ class Bridge:
             return "Запуск задания: /dev задача. Статус: /dev_status. Уточнение: /dev_reply текст."
         return await self.submit(source, origin, args.strip())
 
+    async def usage(self, args, *, source=None):
+        if self.origin(source) is None:
+            return OWNER_ONLY
+        if args.strip():
+            return "Отправь /usage без параметров."
+        settings = self.settings()
+        environment = {name: value for name, value in os.environ.items() if name.upper() in CODEX_USAGE_ENV}
+        if settings.get("codex_home"):
+            environment["CODEX_HOME"] = settings["codex_home"]
+        try:
+            result = await read_rate_limits(codex_command(settings.get("codex_command")), environment)
+        except UsageError as error:
+            return str(error)
+        return usage_message(result)
+
     async def status(self, args, *, source=None):
         origin = self.origin(source)
         if origin is None:
@@ -808,6 +832,7 @@ def register(ctx):
     ctx.register_command("dev-status", bridge.status, "Посмотреть поручение T3")
     ctx.register_command("dev-reply", bridge.reply, "Уточнить поручение в том же треде T3", "текст")
     ctx.register_command("dev-link", bridge.link, "Получить ссылку на тред T3")
+    ctx.register_command("codex-usage", bridge.usage, "Лимиты подписки Codex и время до сброса")
     ctx.register_hook("pre_gateway_dispatch", bridge.route_reply)
     ctx.register_hook("post_gateway_admission", bridge.topic_message)
     ctx.register_telegram_handler(bridge.telegram_handlers)
